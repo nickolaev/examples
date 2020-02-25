@@ -1,0 +1,30 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      networkservicemesh.io/app: "source"
+      networkservicemesh.io/impl: "topology"
+  template:
+    metadata:
+      labels:
+        networkservicemesh.io/app: "source"
+        networkservicemesh.io/impl: "topology"
+    spec:
+      containers:
+        - name: source
+          image: networkservicemesh/go-cnf-source:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: CLIENT_NETWORK_SERVICE
+              value: "topology"
+            - name: CLIENT_LABELS
+              value: "app=sink"
+          resources:
+            limits:
+              networkservicemesh.io/socket: 1
+metadata:
+  name: source
+  namespace: default

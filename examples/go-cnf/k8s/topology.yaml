@@ -1,0 +1,15 @@
+---
+apiVersion: networkservicemesh.io/v1alpha1
+kind: NetworkService
+metadata:
+  name: topology
+spec:
+  payload: IP
+  matches:
+    - match:
+      sourceSelector:
+        app: sink
+      route:
+        - destination:
+          destinationSelector:
+            app: sink
