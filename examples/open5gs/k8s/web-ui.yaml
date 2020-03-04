@@ -1,0 +1,61 @@
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: open5gs-webui
+#   namespace: open5gs
+#   labels:
+#     epc-mode: webui
+# spec:
+#   type: ClusterIP
+#   ports:
+#     - port: 80
+#       targetPort: 3000
+#   selector:
+#     epc-mode: webui
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open5gs-webui
+  namespace: open5gs  
+  labels:
+    epc-mode: webui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      epc-mode: webui
+  template:
+    metadata:
+      labels:
+        epc-mode: webui
+    spec:
+      containers:
+      - name: webui
+        imagePullPolicy: IfNotPresent
+        # image: registry.gitlab.com/infinitydon/registry/open5gs-webui:1.2.0
+        image: networkservicemesh/open5gs-webui:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          nextip(){
+            IP=$1
+            IP_HEX=$(printf '%.2X%.2X%.2X%.2X\n' `echo $IP | sed -e 's/\./ /g'`)
+            NEXT_IP_HEX=$(printf %.8X `echo $(( 0x$IP_HEX + 1 ))`)
+            NEXT_IP=$(printf '%d.%d.%d.%d\n' `echo $NEXT_IP_HEX | sed -r 's/(..)/0x\1 /g'`)
+            echo "$NEXT_IP"
+          }
+          IFNAME=hssdb
+          LOCALIP=$(ip -4 addr show dev ${IFNAME} | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+          SERVICEIP=$(nextip ${LOCALIP})
+          export DB_URI="mongodb://${SERVICEIP}/open5gs"
+          node server/index.js
+        env:
+        - name: NODE_ENV
+          value: "production"          
+metadata:
+  name: "webui"
+  namespace: default
+  annotations:
+    ns.networkservicemesh.io: 4g-network/hssdb?app=web-ui

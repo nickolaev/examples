@@ -1,0 +1,46 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo
+spec:
+  # serviceName: "mongodb"
+  replicas: 1
+  selector:
+    matchLabels:
+      role: mongo
+  template:
+    metadata:
+      labels:
+        role: mongo
+        environment: test
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: mongo
+          image: mongo
+          command:
+            - mongod
+          args:
+            - "--bind_ip=0.0.0.0"
+          volumeMounts:
+            - name: mongo-persistent-storage
+              mountPath: /data/db
+        - name: sidecar-nse
+          image: networkservicemesh/open5gs-sidecar-nse:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: ENDPOINT_NETWORK_SERVICE
+              value: "4g-network"
+            - name: ENDPOINT_LABELS
+              value: "app=hssdb"
+            - name: TRACER_ENABLED
+              value: "true"
+            - name: IP_ADDRESS
+              value: "10.60.5.0/24"
+          resources:
+            limits:
+              networkservicemesh.io/socket: 1
+      volumes:
+      - name: mongo-persistent-storage
+        emptyDir: {}
